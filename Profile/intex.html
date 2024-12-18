@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <!-- Basic Styling to Match the UI -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+        }
+
+        header {
+            background-color: #003366;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+        }
+
+        .profile-container {
+            width: 60%;
+            margin: 30px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .save-btn {
+            background-color: #003366;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            display: block;
+            width: 100px;
+            margin: auto;
+        }
+
+        .save-btn:hover {
+            background-color: #0056b3;
+        }
+
+        #message {
+            text-align: center;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Profile</h1>
+    </header>
+
+    <div class="profile-container">
+        <h2>Personal Details</h2>
+        <form id="profileForm">
+            <!-- Profile Details -->
+            <div class="form-section">
+                <label for="first_name">First Name</label>
+                <input type="text" id="first_name"  placeholder="First Name">
+
+                <label for="last_name">Last Name</label>
+                <input type="text" id="last_name"  placeholder="Last Name">
+            </div>
+
+            <!-- Contact Details -->
+            <div class="form-section">
+                <label for="email">Email</label>
+                <input type="email" id="email"  placeholder="Email Address">
+
+                <label for="mobile_phone">Mobile Phone</label>
+                <input type="text" id="mobile_phone" placeholder="Mobile Phone">
+            </div>
+
+            <!-- Date of Birth -->
+            <div class="form-section">
+                <label>Date of Birth</label>
+                <select id="day">
+                    <option value="">Day</option>
+                    {% for i in range(1, 32) %}
+                    <option value="{{ i }}" {% if profile['date_of_birth']['day'] == i|string %}selected{% endif %}>{{ i }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="month">
+                    <option value="">Month</option>
+                    {% for month in ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] %}
+                    <option value="{{ month }}" {% if profile['date_of_birth']['month'] == month %}selected{% endif %}>{{ month }}</option>
+                    {% endfor %}
+                </select>
+
+                <select id="year">
+                    <option value="">Year</option>
+                    {% for year in range(1900, 2024) %}
+                    <option value="{{ year }}" {% if profile['date_of_birth']['year'] == year|string %}selected{% endif %}>{{ year }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Save Button -->
+            <button type="button" class="save-btn" onclick="updateProfile()">Save</button>
+        </form>
+
+        <!-- Response Message -->
+        <div id="message"></div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        function updateProfile() {
+            // Collect form data
+            const profileData = {
+                first_name: document.getElementById("first_name").value,
+                last_name: document.getElementById("last_name").value,
+                email: document.getElementById("email").value,
+                mobile_phone: document.getElementById("mobile_phone").value,
+                day: document.getElementById("day").value,
+                month: document.getElementById("month").value,
+                year: document.getElementById("year").value
+            };
+
+            // Send data to back-end via POST request
+            fetch('/update_profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(profileData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const messageDiv = document.getElementById("message");
+                if (data.status === "success") {
+                    messageDiv.style.color = "green";
+                } else {
+                    messageDiv.style.color = "red";
+                }
+                messageDiv.innerText = data.message;
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("message").innerText = "An error occurred. Please try again.";
+            });
+        }
+    </script>
+</body>
+</html>

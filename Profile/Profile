@@ -1,0 +1,65 @@
+from flask import Flask, render_template, request, jsonify
+
+app = Flask(__name__)
+
+# Sample user profile data
+user_profile = {
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "John.Smith87@gmail.com",
+    "mobile_phone": "",
+    "date_of_birth": {
+        "day": "",
+        "month": "",
+        "year": ""
+    }
+}
+
+@app.route('/')
+def profile_page():
+    """
+    Route to render the profile page.
+    The profile data will be sent to the front-end template.
+    """
+    return render_template('profile.html', profile=user_profile)
+
+
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    """
+    Route to handle user profile updates.
+    The front-end will send data in JSON format via a POST request.
+    """
+    data = request.get_json()
+    errors = []
+
+    # Update and validate fields
+    try:
+        user_profile["first_name"] = data.get("first_name", "").strip()
+        user_profile["last_name"] = data.get("last_name", "").strip()
+        user_profile["email"] = data.get("email", "").strip()
+        user_profile["mobile_phone"] = data.get("mobile_phone", "").strip()
+        user_profile["date_of_birth"] = {
+            "day": data.get("day", ""),
+            "month": data.get("month", ""),
+            "year": data.get("year", "")
+        }
+
+        # Simple validation
+        if not user_profile["first_name"] or not user_profile["last_name"]:
+            errors.append("First name and Last name are required.")
+        if not user_profile["email"]:
+            errors.append("Email is required.")
+        if not user_profile["date_of_birth"]["day"] or not user_profile["date_of_birth"]["month"] or not user_profile["date_of_birth"]["year"]:
+            errors.append("Complete date of birth is required.")
+
+        if errors:
+            return jsonify({"status": "error", "message": errors}), 400
+
+        return jsonify({"status": "success", "message": "Profile updated successfully!"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
