@@ -1,0 +1,94 @@
+from flask import Flask, jsonify, request
+from flask_sqlalchemy import SQLAlchemy
+
+app = Flask(__name__)
+
+# Configurations
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///nurse_data.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Nurse Model
+class Nurse(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    age = db.Column(db.Integer)
+    role = db.Column(db.String(50))
+    medical_center = db.Column(db.String(50))
+    reviews = db.Column(db.Integer)
+    rating = db.Column(db.Float)
+    time_slots = db.Column(db.String(200))  # JSON or CSV formatted time slots
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "age": self.age,
+            "role": self.role,
+            "medical_center": self.medical_center,
+            "reviews": self.reviews,
+            "rating": self.rating,
+            "time_slots": self.time_slots.split(',')
+        }
+
+# Routes
+@app.route('/')
+def home():
+    return "Nurse Finder API"
+
+@app.route('/nurses', methods=['GET'])
+def get_nurses():
+    # Filters from request arguments
+    location = request.args.get('location', type=str)
+    date = request.args.get('date', type=str)
+    time = request.args.get('time', type=str)
+    role = request.args.get('role', type=str)
+    age = request.args.get('age', type=int)
+    center = request.args.get('center', type=str)
+    page = request.args.get('page', 1, type=int)
+    per_page = 5
+
+    query = Nurse.query
+
+    # Apply filters dynamically
+    if role:
+        query = query.filter_by(role=role)
+    if center:
+        query = query.filter(Nurse.medical_center.ilike(f"%{center}%"))
+    if age:
+        query = query.filter_by(age=age)
+
+    # Pagination
+    paginated_nurses = query.paginate(page=page, per_page=per_page)
+
+    # Response data
+    nurses = [nurse.to_dict() for nurse in paginated_nurses.items]
+    return jsonify({
+        "total_pages": paginated_nurses.pages,
+        "current_page": paginated_nurses.page,
+        "nurses": nurses
+    })
+
+@app.route('/nurse/<int:nurse_id>', methods=['GET'])
+def get_nurse_details(nurse_id):
+    nurse = Nurse.query.get_or_404(nurse_id)
+    return jsonify(nurse.to_dict())
+
+# Initialize Database
+@app.cli.command("initdb")
+def init_db():
+    db.drop_all()
+    db.create_all()
+    # Example data
+    example_nurses = [
+        Nurse(name="Maria Gevorgyan", age=45, role="Nurse", medical_center="Avan", reviews=123, rating=4.8, time_slots="7:30 PM,8:00 PM,9:30 PM"),
+        Nurse(name="Nvard Babayan", age=55, role="Nurse", medical_center="Ajapnyak", reviews=176, rating=4.9, time_slots="12:00 PM,12:30 PM,1:30 PM"),
+        Nurse(name="Avet Hakobyan", age=33, role="Nurse", medical_center="Nork", reviews=234, rating=4.6, time_slots="2:00 PM,3:00 PM,6:00 PM")
+    ]
+    db.session.bulk_save_objects(example_nurses)
+    db.session.commit()
+    print("Database Initialized")
+
+# Run App
+if __name__ == '__main__':
+    app.run(debug=True)
